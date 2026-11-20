@@ -1,0 +1,180 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><title>Facturación</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+:root{--bg:#f4f5f7;--card:#fff;--tx:#1f2937;--mu:#6b7280;--ac:#1e4e8c;--on:#fff;--bd:#e2e5ea;--ok:#15803d;--wa:#b45309;--er:#b91c1c;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111418;--card:#1a1f26;--tx:#e5e7eb;--mu:#9ca3af;--ac:#6ea8fe;--on:#0b1220;--bd:#2b323c;--ok:#4ade80;--wa:#fbbf24;--er:#f87171;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#111418;--card:#1a1f26;--tx:#e5e7eb;--mu:#9ca3af;--ac:#6ea8fe;--on:#0b1220;--bd:#2b323c;--ok:#4ade80;--wa:#fbbf24;--er:#f87171;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--tx)}
+#app{display:flex;min-height:100vh}
+nav{width:220px;background:var(--card);border-right:1px solid var(--bd);padding:18px 12px;position:sticky;top:0;height:100vh;flex:none}
+nav h1{font-size:17px;margin:0 8px 16px;color:var(--ac)}
+nav a{display:block;padding:10px 12px;border-radius:8px;color:var(--tx);text-decoration:none;margin-bottom:2px}
+nav a.on{background:var(--ac);color:var(--on)}
+main{flex:1;padding:22px;max-width:1100px;min-width:0}
+h2{margin:0 0 14px;font-size:22px}h3{margin:18px 0 8px;font-size:16px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:16px}
+.g{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.st{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:16px}
+.st div{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px}.st b{display:block;font-size:22px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mu);gap:4px}
+input,select,textarea{font:inherit;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);width:100%}
+button,.btn{font:inherit;padding:9px 14px;border-radius:8px;border:1px solid var(--ac);background:var(--ac);color:var(--on);cursor:pointer;text-decoration:none;display:inline-block}
+.b2{background:transparent;color:var(--ac)}.bd{border-color:var(--er);color:var(--er);background:transparent}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.mu{color:var(--mu)}
+.w{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+tbody tr.k{cursor:pointer}tbody tr.k:hover{background:var(--bg)}th{font-size:12px;color:var(--mu);text-transform:uppercase}
+.r{text-align:right}.pill{padding:2px 9px;border-radius:99px;font-size:12px;border:1px solid currentColor}
+.Pendiente{color:var(--wa)}.Pagada{color:var(--ok)}.Anulada{color:var(--er)}
+.ln{display:grid;grid-template-columns:3fr 1fr 1fr 1fr auto;gap:8px;margin-bottom:8px}
+.tot{margin-left:auto;max-width:320px}.tot div{display:flex;justify-content:space-between;padding:3px 0}.tot .t{font-weight:700;font-size:18px;border-top:1px solid var(--bd);margin-top:4px;padding-top:8px}
+dialog{border:1px solid var(--bd);border-radius:12px;background:var(--card);color:var(--tx);max-width:640px;width:92%}
+#doc{background:#fff;color:#111;padding:30px;border:1px solid #ccc;max-width:794px;margin:0 auto}
+#doc table th{color:#555;border-bottom:2px solid #111}#doc td{border-bottom:1px solid #ddd}
+@media(max-width:760px){#app{flex-direction:column}nav{width:100%;height:auto;position:static;display:flex;overflow-x:auto;gap:4px;padding:8px;border-right:0;border-bottom:1px solid var(--bd)}nav h1{display:none}nav a{white-space:nowrap;margin:0}main{padding:14px}.ln{grid-template-columns:1fr 1fr}.ln .d{grid-column:1/-1}#doc{padding:14px}}
+@media print{body *{visibility:hidden}#doc,#doc *{visibility:visible}#doc{position:absolute;left:0;top:0;width:100%;border:0}}
+</style><script src="shim.js"></script></head><body><div id="app"><nav id="nav"></nav><main id="main">Cargando…</main></div>
+<dialog id="dlg"></dialog>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const e=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=n=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(n||0);
+const fd=d=>d?d.split('-').reverse().join('/'):'';
+const today=()=>new Date().toISOString().slice(0,10);
+const S={clients:[],invoices:[],company:{},config:{prefix:'FAC',rect:'REC',year:new Date().getFullYear(),iva:21},got:0,draft:null};
+const F=[['name','Nombre o razón social'],['nif','NIF/CIF'],['addr','Dirección fiscal'],['cp','Código postal'],['city','Ciudad'],['prov','Provincia'],['country','País'],['tel','Teléfono'],['mail','Correo electrónico']];
+let db,uid;
+const NAV=[['inicio','Inicio'],['crear','Crear factura'],['facturas','Facturas'],['clientes','Clientes'],['empresa','Datos de empresa'],['config','Configuración']];
+const round=n=>Math.round((n+Number.EPSILON)*100)/100;
+function totals(lines,iva,irpf){const base=round(lines.reduce((s,l)=>s+l.q*l.p*(1-(l.dc||0)/100),0));const ia=round(base*iva/100),ra=round(base*irpf/100);return{base,ia,ra,total:round(base+ia-ra)}}
+function addr(c){return [c.addr,[c.cp,c.city].filter(Boolean).join(' '),[c.prov,c.country].filter(Boolean).join(', ')].filter(Boolean)}
+const key=()=>{const v=location.hash.slice(1)||'inicio';return v.startsWith('ver-')?'ver':v};
+
+function render(){
+ const k=key();$('#nav').innerHTML='<h1>Facturación</h1>'+NAV.map(([h,t])=>`<a href="#${h}" class="${h==k||(k=='ver'&&h=='facturas')?'on':''}">${t}</a>`).join('');
+ if(!db){$('#main').innerHTML='<div class="card">Para guardar datos de forma permanente debes abrir esta página con tu sesión de Claude iniciada.</div>';return}
+ if(S.got>=4&&['crear','empresa','config'].includes(k)&&S.shown==k){if(k=='crear')fillClients();return}
+ S.shown=k;const m=$('#main');
+ ({inicio:vInicio,crear:vCrear,facturas:vFacturas,clientes:vClientes,empresa:vEmpresa,config:vConfig,ver:vVer}[k]||vInicio)(m);
+}
+addEventListener('hashchange',()=>{S.shown=null;render()});
+
+function vInicio(m){
+ const ok=S.invoices.filter(i=>i.status!='Anulada'),pe=ok.filter(i=>i.status=='Pendiente'),pa=ok.filter(i=>i.status=='Pagada');
+ const sum=a=>a.reduce((s,i)=>s+i.total,0),last=[...S.invoices].sort((a,b)=>b.created-a.created).slice(0,5);
+ m.innerHTML=`<h2>Inicio</h2><div class="row"><a class="btn" href="#crear">Crear factura</a><a class="btn b2" href="#clientes">Gestionar clientes</a></div>
+ <div class="st"><div>Facturas emitidas<b>${S.invoices.length}</b></div><div>Importe facturado<b>${eur(sum(ok))}</b></div><div>Pendientes de pago<b>${pe.length} · ${eur(sum(pe))}</b></div><div>Pagadas<b>${pa.length} · ${eur(sum(pa))}</b></div></div>
+ <div class="card"><h3 style="margin-top:0">Últimas facturas</h3>${tabla(last)}</div>`}
+function tabla(a){return `<div class="w"><table><thead><tr><th>Número</th><th>Fecha</th><th>Cliente</th><th>NIF/CIF</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>${a.map(i=>`<tr class="k" onclick="location.hash='ver-${e(i.num)}'"><td>${e(i.num)}</td><td>${fd(i.date)}</td><td>${e(i.client.name)}</td><td>${e(i.client.nif)}</td><td class="r">${eur(i.total)}</td><td><span class="pill ${i.status}">${i.status}</span></td></tr>`).join('')||'<tr><td colspan=6 class="mu">Sin facturas todavía</td></tr>'}</tbody></table></div>`}
+
+function vFacturas(m){
+ const ys=[...new Set(S.invoices.map(i=>i.date.slice(0,4)))].sort().reverse();
+ m.innerHTML=`<h2>Facturas</h2><div class="card"><div class="g"><label>Buscar<input id="fq" placeholder="Número o cliente"></label><label>Desde<input type="date" id="f1"></label><label>Hasta<input type="date" id="f2"></label>
+ <label>Estado<select id="fs"><option value="">Todos</option><option>Pendiente</option><option>Pagada</option><option>Anulada</option></select></label><label>Año<select id="fy"><option value="">Todos</option>${ys.map(y=>`<option>${y}</option>`).join('')}</select></label></div></div><div class="card" id="fl"></div>`;
+ const go=()=>{const q=$('#fq').value.toLowerCase(),a=$('#f1').value,b=$('#f2').value,s=$('#fs').value,y=$('#fy').value;
+  $('#fl').innerHTML=tabla(S.invoices.filter(i=>(!q||(i.num+i.client.name).toLowerCase().includes(q))&&(!a||i.date>=a)&&(!b||i.date<=b)&&(!s||i.status==s)&&(!y||i.date.startsWith(y))).sort((x,z)=>z.num.localeCompare(x.num)))};
+ $$('#main input,#main select').forEach(x=>x.oninput=go);go()}
+
+/* Clientes */
+function vClientes(m){
+ m.innerHTML=`<h2>Clientes</h2><div class="row"><button onclick="openClient()">Añadir cliente</button></div><div class="card w"><table><thead><tr><th>Nombre</th><th>NIF/CIF</th><th>Ciudad</th><th>Teléfono</th><th>Correo</th><th></th></tr></thead><tbody>${S.clients.map(c=>`<tr><td>${e(c.name)}</td><td>${e(c.nif)}</td><td>${e(c.city)}</td><td>${e(c.tel)}</td><td>${e(c.mail)}</td><td class="r"><button class="b2" onclick="openClient('${c.id}')">Editar</button> <button class="bd" onclick="delClient('${c.id}')">Eliminar</button></td></tr>`).join('')||'<tr><td colspan=6 class="mu">Sin clientes</td></tr>'}</tbody></table></div>`}
+function openClient(id,after){
+ const c=S.clients.find(x=>x.id==id)||{};const d=$('#dlg');
+ d.innerHTML=`<h3 style="margin-top:0">${id?'Editar':'Nuevo'} cliente</h3><div class="g">${F.map(([k,t])=>`<label>${t}<input data-k="${k}" value="${e(c[k]||(k=='country'?'España':''))}"></label>`).join('')}</div><div class="row"><button id="cs">Guardar</button><button class="b2" onclick="$('#dlg').close()">Cancelar</button></div>`;
+ d.showModal();$('#cs').onclick=async()=>{const o={};$$('#dlg [data-k]').forEach(i=>o[i.dataset.k]=i.value.trim());
+  if(!o.name)return alert('Indica el nombre o razón social');
+  if(o.nif&&!/^([0-9]{8}[A-Z]|[XYZ][0-9]{7}[A-Z]|[ABCDEFGHJNPQRSUVW][0-9]{7}[0-9A-J])$/i.test(o.nif)&&!confirm('El NIF/CIF no tiene formato español válido. ¿Guardar igualmente?'))return;
+  const nid=id||'c'+Date.now();await db.doc('clients/'+nid).set(o);d.close();if(after)after(nid)}}
+async function delClient(id){if(confirm('¿Eliminar este cliente? Las facturas ya emitidas conservan sus datos.'))await db.doc('clients/'+id).delete()}
+
+/* Empresa y configuración */
+function vEmpresa(m){const c=S.company;
+ m.innerHTML=`<h2>Datos de empresa</h2><div class="card"><div class="g">${F.map(([k,t])=>`<label>${t}<input data-k="${k}" value="${e(c[k]||(k=='country'?'España':''))}"></label>`).join('')}</div>
+ <h3>Logotipo</h3><input type="file" id="lg" accept="image/*"><div id="lp" class="row">${c.logo?`<img src="${c.logo}" style="max-height:70px">`:''}</div><button onclick="saveCompany()">Guardar datos</button></div>`;
+ $('#lg').onchange=ev=>{const f=ev.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const w=Math.min(300,im.width),h=im.height*w/im.width,cv=document.createElement('canvas');cv.width=w;cv.height=h;cv.getContext('2d').drawImage(im,0,0,w,h);S.company.logo=cv.toDataURL('image/png');S.company.lr=h/w;$('#lp').innerHTML=`<img src="${S.company.logo}" style="max-height:70px">`};im.src=URL.createObjectURL(f)}}
+async function saveCompany(){const o={...S.company};$$('#main [data-k]').forEach(i=>o[i.dataset.k]=i.value.trim());await db.doc('config/company').set(o);alert('Datos guardados')}
+function vConfig(m){const c=S.config;
+ m.innerHTML=`<h2>Configuración</h2><div class="card"><h3 style="margin-top:0">Numeración</h3><div class="g"><label>Prefijo de la serie<input id="cp" value="${e(c.prefix)}"></label><label>Prefijo rectificativas<input id="cr" value="${e(c.rect)}"></label><label>Año de la serie<input id="cy" type="number" value="${c.year}"></label><label>IVA por defecto (%)<select id="ci">${[21,10,4,0].map(v=>`<option ${v==c.iva?'selected':''}>${v}</option>`).join('')}</select></label></div>
+ <p class="mu">Formato: ${e(c.prefix)}-${c.year}-001. Al cambiar de año la serie se reinicia automáticamente y se conserva el histórico. Los números anulados no se reutilizan.</p><button onclick="saveConfig()">Guardar</button></div>
+ <div class="card"><h3 style="margin-top:0">Copia de seguridad</h3><div class="row"><button onclick="backup()">Descargar copia (JSON)</button><label style="flex-direction:row;align-items:center" class="btn b2">Restaurar copia<input type="file" accept=".json" id="rs" hidden></label></div></div>
+ <div class="card mu">Aviso: esta aplicación no implementa ni certifica los requisitos técnicos de VeriFactu (registro de facturación, huella, QR, remisión a la AEAT). Consulta con tu asesor antes de usarla como sistema de facturación oficial.</div>`;
+ $('#rs').onchange=async ev=>{const f=ev.target.files[0];if(!f||!confirm('Se importarán los datos de la copia. ¿Continuar?'))return;const d=JSON.parse(await f.text());
+  for(const c of d.clients||[]){const{id,...r}=c;await db.doc('clients/'+id).set(r)}
+  for(const i of d.invoices||[]){const{id,...r}=i;await db.doc('invoices/'+id).set(r)}
+  if(d.company)await db.doc('config/company').set(d.company);if(d.config)await db.doc('config/main').set(d.config);alert('Copia restaurada')}}
+async function saveConfig(){await db.doc('config/main').set({prefix:$('#cp').value.trim().toUpperCase()||'FAC',rect:$('#cr').value.trim().toUpperCase()||'REC',year:+$('#cy').value||new Date().getFullYear(),iva:+$('#ci').value});alert('Configuración guardada')}
+async function backup(){const dl=await claude.use('downloads');if(!dl)return alert('Descarga no disponible');
+ await dl.save({filename:'copia-facturacion-'+today()+'.json',data:JSON.stringify({clients:S.clients,invoices:S.invoices,company:S.company,config:S.config},null,1)}).catch(()=>{})}
+
+/* Crear factura */
+function vCrear(m){
+ const d=S.draft||{};S.draft=null;const c=S.config;
+ m.innerHTML=`<h2>Crear factura</h2><div class="card"><div class="g"><label>Número<input disabled value="Se asigna automáticamente al emitir"></label><label>Fecha de emisión<input type="date" id="fe" value="${today()}"></label><label>Fecha de vencimiento<input type="date" id="fv" value="${d.due||''}"></label><label>Cliente<select id="cl"></select></label></div>
+ <div id="cd" class="mu" style="margin-top:8px"></div><h3>Conceptos</h3><div id="L"></div><button class="b2" onclick="addLine()">Añadir concepto</button>
+ <div class="g" style="margin-top:14px"><label>IVA (%)<select id="iv">${[21,10,4,0].map(v=>`<option ${v==(d.iva??c.iva)?'selected':''}>${v}</option>`).join('')}</select></label><label>Retención IRPF (%)<select id="ir">${[0,7,15,19].map(v=>`<option ${v==(d.irpf||0)?'selected':''}>${v}</option>`).join('')}</select></label></div>
+ <div class="tot" id="tt"></div><div class="g"><label>Forma de pago y datos bancarios<textarea id="py" rows="3">${e(d.pay||'')}</textarea></label><label>Observaciones<textarea id="ob" rows="3">${e(d.notes||'')}</textarea></label></div>
+ <div class="row"><button id="em" onclick="saveInv()">Emitir factura</button></div></div>`;
+ fillClients(d.client&&S.clients.find(x=>x.nif==d.client.nif&&x.name==d.client.name)?.id);
+ (d.lines?.length?d.lines:[{}]).forEach(addLine);$('#iv').oninput=$('#ir').oninput=calc;calc();
+ $('#cl').onchange=()=>{if($('#cl').value=='__new'){openClient(null,id=>{S.sel=id;fillClients(id)});$('#cl').value=''}showC()}}
+function fillClients(sel){const s=$('#cl');if(!s)return;const v=sel||S.sel||s.value;S.sel=null;s.innerHTML='<option value="">Selecciona un cliente…</option>'+S.clients.map(c=>`<option value="${c.id}">${e(c.name)}</option>`).join('')+'<option value="__new">+ Crear cliente nuevo</option>';if(S.clients.some(c=>c.id==v))s.value=v;showC()}
+function showC(){const c=S.clients.find(x=>x.id==$('#cl')?.value);if($('#cd'))$('#cd').innerHTML=c?`${e(c.nif)} · ${addr(c).map(e).join(', ')}`:''}
+function addLine(l={}){const r=document.createElement('div');r.className='ln';r.innerHTML=`<input class="d" placeholder="Concepto o descripción" value="${e(l.d||'')}"><input class="q" type="number" step="any" placeholder="Cantidad" value="${l.q??1}"><input class="p" type="number" step="any" placeholder="Precio unit." value="${l.p??''}"><input class="dc" type="number" step="any" placeholder="Dto. %" value="${l.dc||''}"><button class="bd" title="Quitar" onclick="this.parentNode.remove();calc()">✕</button>`;r.oninput=calc;$('#L').appendChild(r)}
+function readLines(){return $$('.ln').map(r=>({d:r.querySelector('.d').value.trim(),q:+r.querySelector('.q').value||0,p:+r.querySelector('.p').value||0,dc:+r.querySelector('.dc').value||0})).filter(l=>l.d)}
+function calc(){const t=totals(readLines(),+$('#iv').value,+$('#ir').value);$('#tt').innerHTML=`<div><span>Base imponible</span><span>${eur(t.base)}</span></div><div><span>IVA (${$('#iv').value}%)</span><span>${eur(t.ia)}</span></div><div><span>IRPF (${$('#ir').value}%)</span><span>−${eur(t.ra)}</span></div><div class="t"><span>Total</span><span>${eur(t.total)}</span></div>`}
+async function nextNum(prefix,year){
+ let n=1+Math.max(0,...S.invoices.filter(i=>i.num.startsWith(prefix+'-'+year+'-')).map(i=>+i.num.split('-').pop()||0));
+ for(;;n++){const num=`${prefix}-${year}-${String(n).padStart(3,'0')}`;if(S.invoices.some(i=>i.num==num))continue;
+  const r=await db.doc('locks/'+num).acquire({holder:uid||'u',ttlMs:31536000000});if(r.acquired)return num}}
+async function emit(o,prefix){
+ const ny=new Date().getFullYear();if(ny>S.config.year){S.config.year=ny;await db.doc('config/main').set(S.config)}
+ const num=await nextNum(prefix,S.config.year);Object.assign(o,{num,created:Date.now(),status:'Pendiente'});await db.doc('invoices/'+num).set(o);return num}
+async function saveInv(){
+ const c=S.clients.find(x=>x.id==$('#cl').value);if(!c)return alert('Selecciona un cliente');
+ const lines=readLines();if(!lines.length)return alert('Añade al menos un concepto');if(!$('#fe').value)return alert('Indica la fecha de emisión');
+ const iva=+$('#iv').value,irpf=+$('#ir').value,{id,...cl}=c;$('#em').disabled=true;
+ try{const num=await emit({date:$('#fe').value,due:$('#fv').value||null,client:cl,lines,iva,irpf,...totals(lines,iva,irpf),pay:$('#py').value,notes:$('#ob').value,tipo:'ordinaria',rect:null},S.config.prefix);location.hash='ver-'+num}
+ catch(x){alert('No se pudo guardar: '+(x.message||x));$('#em').disabled=false}}
+
+/* Ver factura */
+const cur=()=>S.invoices.find(i=>i.num==location.hash.slice(5));
+function vVer(m){const i=cur();if(!i){m.innerHTML='<div class="card">Factura no encontrada. <a href="#facturas">Volver</a></div>';return}
+ m.innerHTML=`<div class="row"><a class="btn b2" href="#facturas">← Facturas</a><button onclick="pdf()">Generar y descargar PDF</button><button class="b2" onclick="print()">Imprimir factura</button>
+ ${i.status=='Pendiente'?'<button class="b2" onclick="setSt(\'Pagada\')">Marcar como pagada</button>':''}${i.status=='Pagada'?'<button class="b2" onclick="setSt(\'Pendiente\')">Marcar pendiente</button>':''}
+ <button class="b2" onclick="dup()">Duplicar</button>${i.status!='Anulada'&&i.tipo!='rectificativa'?'<button class="b2" onclick="rectif()">Rectificar</button>':''}${i.status!='Anulada'?'<button class="bd" onclick="setSt(\'Anulada\')">Anular</button>':''}</div>
+ <div id="doc">${docHTML(i)}</div>`}
+function docHTML(i){const c=S.company,cl=i.client;
+ return `<div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap"><div>${c.logo?`<img src="${c.logo}" style="max-height:70px;display:block;margin-bottom:8px">`:''}<b>${e(c.name||'Tu empresa')}</b><br>${e(c.nif||'')}<br>${addr(c).map(e).join('<br>')}<br>${e(c.tel||'')} ${e(c.mail||'')}</div>
+ <div style="text-align:right"><div style="font-size:13px;color:#555">${i.tipo=='rectificativa'?'FACTURA RECTIFICATIVA':'FACTURA'}</div><div style="font-size:26px;font-weight:700">${e(i.num)}</div>Emisión: ${fd(i.date)}<br>Vencimiento: ${fd(i.due)||'—'}${i.rect?`<br>Rectifica: ${e(i.rect)}`:''}</div></div>
+ <div style="margin:22px 0;padding:12px;background:#f3f4f6;border-radius:6px"><b>${e(cl.name)}</b><br>${e(cl.nif)}<br>${addr(cl).map(e).join('<br>')}</div>
+ <div class="w"><table><thead><tr><th>Concepto</th><th class="r">Cant.</th><th class="r">Precio</th><th class="r">Dto.</th><th class="r">Importe</th></tr></thead><tbody>${i.lines.map(l=>`<tr><td style="white-space:normal">${e(l.d)}</td><td class="r">${l.q}</td><td class="r">${eur(l.p)}</td><td class="r">${l.dc?l.dc+'%':''}</td><td class="r">${eur(round(l.q*l.p*(1-l.dc/100)))}</td></tr>`).join('')}</tbody></table></div>
+ <div class="tot" style="margin-top:16px"><div><span>Base imponible</span><span>${eur(i.base)}</span></div><div><span>IVA ${i.iva}%</span><span>${eur(i.ia)}</span></div>${i.irpf?`<div><span>Retención IRPF ${i.irpf}%</span><span>−${eur(i.ra)}</span></div>`:''}<div class="t"><span>Total</span><span>${eur(i.total)}</span></div></div>
+ ${i.pay?`<p><b>Forma de pago</b><br>${e(i.pay).replace(/\n/g,'<br>')}</p>`:''}${i.notes?`<p><b>Observaciones</b><br>${e(i.notes).replace(/\n/g,'<br>')}</p>`:''}`}
+async function setSt(s){if(s=='Anulada'&&!confirm('¿Anular la factura? El número no se reutilizará.'))return;await db.doc('invoices/'+cur().num).update({status:s})}
+function dup(){const{client,lines,iva,irpf,pay,notes}=cur();S.draft={client,lines,iva,irpf,pay,notes};location.hash='crear'}
+async function rectif(){const i=cur(),m=prompt('Motivo de la rectificación:');if(m===null)return;
+ const lines=i.lines.map(l=>({...l,p:-l.p}));const num=await emit({date:today(),due:null,client:i.client,lines,iva:i.iva,irpf:i.irpf,...totals(lines,i.iva,i.irpf),pay:i.pay,notes:'Motivo: '+m,tipo:'rectificativa',rect:i.num},S.config.rect||'REC');location.hash='ver-'+num}
+function pdf(){const i=cur(),c=S.company,cl=i.client,{jsPDF}=window.jspdf,d=new jsPDF({unit:'mm',format:'a4'}),m=n=>eur(n).replace(/\u00a0/g,' ');
+ let x=15;if(c.logo){try{d.addImage(c.logo,'PNG',15,12,28,28*(c.lr||.3));x=48}catch{}}
+ d.setFontSize(11).setFont(undefined,'bold').text(c.name||'',x,16).setFont(undefined,'normal').setFontSize(9);
+ d.text([c.nif||'',...addr(c),c.tel||'',c.mail||''].filter(Boolean),x,21);
+ d.setFontSize(10).text(i.tipo=='rectificativa'?'FACTURA RECTIFICATIVA':'FACTURA',195,16,{align:'right'});d.setFontSize(20).setFont(undefined,'bold').text(i.num,195,25,{align:'right'});
+ d.setFontSize(9).setFont(undefined,'normal').text(['Emisión: '+fd(i.date),'Vencimiento: '+(fd(i.due)||'—'),...(i.rect?['Rectifica: '+i.rect]:[])],195,31,{align:'right'});
+ d.setFillColor(243,244,246).rect(15,58,180,26,'F');d.setFont(undefined,'bold').text(cl.name||'',18,64).setFont(undefined,'normal').text([cl.nif||'',...addr(cl)],18,69);
+ d.autoTable({startY:92,head:[['Concepto','Cant.','Precio','Dto.','Importe']],body:i.lines.map(l=>[l.d,l.q,m(l.p),l.dc?l.dc+'%':'',m(round(l.q*l.p*(1-l.dc/100)))]),headStyles:{fillColor:[30,78,140]},columnStyles:{1:{halign:'right'},2:{halign:'right'},3:{halign:'right'},4:{halign:'right'}},styles:{fontSize:9}});
+ let y=d.lastAutoTable.finalY+8;const R=(a,b,bold)=>{d.setFont(undefined,bold?'bold':'normal').text(a,130,y).text(b,195,y,{align:'right'});y+=6};
+ R('Base imponible',m(i.base));R('IVA '+i.iva+'%',m(i.ia));if(i.irpf)R('Retención IRPF '+i.irpf+'%','-'+m(i.ra));d.setFontSize(12);R('TOTAL',m(i.total),1);d.setFontSize(9);y+=4;
+ for(const[t,v]of[['Forma de pago',i.pay],['Observaciones',i.notes]])if(v){d.setFont(undefined,'bold').text(t,15,y);d.setFont(undefined,'normal');const ls=d.splitTextToSize(v,180);d.text(ls,15,y+5);y+=8+ls.length*4.5}
+ claude.use('downloads').then(dl=>dl?dl.save({filename:i.num+'.pdf',data:d.output('blob')}):d.save(i.num+'.pdf')).catch(()=>{})}
+
+/* Arranque */
+(async()=>{render();db=await claude.use('db');const u=await claude.use('user');if(!db){render();return}uid=await u?.id();
+ const up=()=>{S.got++;render()},srt=a=>a.sort((x,y)=>(x.name||'').localeCompare(y.name||''));
+ db.collection('clients').onSnapshot(s=>{S.clients=srt(s.docs.map(d=>({id:d.id,...d.data()})));up()});
+ db.collection('invoices').onSnapshot(s=>{S.invoices=s.docs.map(d=>({id:d.id,...d.data()}));up()});
+ db.doc('config/company').onSnapshot(s=>{S.company=s.data()||{};up()});
+ db.doc('config/main').onSnapshot(s=>{S.config={...S.config,...(s.data()||{})};up()});
+})();
+</script></body></html>
